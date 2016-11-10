@@ -69,7 +69,6 @@ public class ClientSender extends Thread {
 	 * to the client's socket.
 	 */
 	public void run() {
-		sendMessageToClient("Java says hello");
 		try {
 			while (!isInterrupted()) {
 				String message = getNextMessageFromQueue();

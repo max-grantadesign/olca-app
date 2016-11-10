@@ -8,15 +8,21 @@ package org.openlca.app.devtools.csharp.server;
 
 import java.io.*;
 import java.net.*;
-import java.time.LocalTime;
-import javax.swing.JOptionPane;
+/*import java.time.LocalTime;
+import javax.swing.JOptionPane;*/
+
+import org.openlca.app.devtools.csharp.CSharp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientListener extends Thread {
 	private ServerDispatcher mServerDispatcher;
 	private ClientInfo mClientInfo;
 	private BufferedReader mIn;
 	private String message;
+	private String response = null;
 	private String decoded = null;
+	private static Logger log = LoggerFactory.getLogger(ClientListener.class);
 
 	public ClientListener(ClientInfo aClientInfo, ServerDispatcher aServerDispatcher) throws IOException {
 		mClientInfo = aClientInfo;
@@ -41,7 +47,11 @@ public class ClientListener extends Thread {
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
-                mServerDispatcher.sendMessage(mClientInfo, decoded);
+                log.info("received incoming message and starting evaluation");
+                CSharp.eval(decoded);
+                response = "evaluation complete";
+                log.info(response);
+                mServerDispatcher.sendMessage(mClientInfo, response);
             } 
 
             catch (IOException e) {

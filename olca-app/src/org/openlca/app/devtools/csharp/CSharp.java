@@ -10,23 +10,18 @@ import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.openlca.app.App;
 import org.openlca.app.Config;
-import org.openlca.app.db.Database;/*MB Additional import*/
-import org.openlca.app.db.IDatabaseConfiguration;/*MB Additional import*/
+import org.openlca.app.db.Database;
 import org.openlca.app.devtools.ScriptApi;
 import org.openlca.app.devtools.csharp.server.Server;
-import org.openlca.app.navigation.actions.DatabaseActivateAction;/*MB Additional import*/
 import org.openlca.app.rcp.RcpActivator;
-import org.openlca.core.database.IDatabase;/*MB Additional import*/
 import org.python.util.PythonInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeroturnaround.zip.ZipUtil;
 
 
-class CSharp {
+public class CSharp {
 
-	private static IDatabase database;
-	
 	private static Logger log = LoggerFactory.getLogger(CSharp.class);
 	
 	private static boolean initialized = false;
@@ -38,14 +33,13 @@ class CSharp {
 			String fullScript = prependImports(script);
 			doEval(fullScript);
 		} catch (Exception e) {
-			/*Logger log = LoggerFactory.getLogger(CSharp.class);*/
 			log.error("failed to evaluate script", e);
 		}
 	}
 
 	private static void doEval(String script) {
 		try (PythonInterpreter interpreter = new PythonInterpreter()) {
-			/*interpreter.set("log", LoggerFactory.getLogger(Python.class));*/
+			interpreter.set("log", LoggerFactory.getLogger(CSharp.class));
 			if (Database.get() != null)
 				interpreter.set("db", Database.get());
 			ScriptApi api = new ScriptApi(Database.get());
@@ -77,12 +71,8 @@ class CSharp {
 		System.setProperty("python.path", pyDir.getAbsolutePath());
 		System.setProperty("python.home", pyDir.getAbsolutePath());
 		
-		/*MB start*/
-		//database = Database.get();
-		//log.info(database.toString());
 		new Server.startInBackground().execute();
 		log.info("openned C# socket in background");
-		/*MB end*/
 		
 		initialized = true;
 	}
