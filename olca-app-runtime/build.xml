@@ -173,6 +173,6 @@
 				<include name="plugins/**" />
 			</zipfileset>
 		</copy>
-	</target>
 
+	</target>
 </project>

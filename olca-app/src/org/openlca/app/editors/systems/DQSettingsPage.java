@@ -1,5 +1,7 @@
 package org.openlca.app.editors.systems;
 
+import org.openlca.app.M;
+
 import java.math.RoundingMode;
 
 import org.eclipse.jface.viewers.IBaseLabelProvider;
@@ -39,23 +41,25 @@ class DQSettingsPage extends WizardPage {
 
 	public DQSettingsPage() {
 		super("DQSettingsPage");
+		setTitle(M.DataQualityProperties);
+		setDescription(M.PleaseSelectThePropertiesForTheDataQualityAssessment);
 	}
 
 	@Override
 	public void createControl(Composite parent) {
 		Composite container = UI.formComposite(parent);
 		setControl(container);
-		processSystemViewer = createDQSystemViewer(container, "#Process schema:");
-		exchangeSystemViewer = createDQSystemViewer(container, "#I/O schema:");
-		new Label(container, SWT.NULL).setText("#Aggregation type:");
+		processSystemViewer = createDQSystemViewer(container, M.ProcessSchema);
+		exchangeSystemViewer = createDQSystemViewer(container, M.FlowSchema);
+		new Label(container, SWT.NULL).setText(M.AggregationType);
 		aggregationTypeCombo = new TypeCombo<>(container, AggregationType.class);
 		aggregationTypeCombo.setInput(AggregationType.values());
 		aggregationTypeCombo.addSelectionChangedListener((e) -> aggregationType = aggregationTypeCombo.getSelected());
-		new Label(container, SWT.NULL).setText("#Rounding mode:");
+		new Label(container, SWT.NULL).setText(M.RoundingMode);
 		roundingModeCombo = new TypeCombo<>(container, RoundingMode.class);
 		roundingModeCombo.setInput(new RoundingMode[] { RoundingMode.HALF_UP, RoundingMode.CEILING });
 		roundingModeCombo.addSelectionChangedListener((e) -> roundingMode = roundingModeCombo.getSelected());
-		new Label(container, SWT.NULL).setText("#n.a. value handling:");
+		new Label(container, SWT.NULL).setText(M.NaValueHandling);
 		processingTypeCombo = new TypeCombo<>(container, ProcessingType.class);
 		processingTypeCombo.setInput(ProcessingType.values());
 		processingTypeCombo.addSelectionChangedListener((e) -> processingType = processingTypeCombo.getSelected());
@@ -64,17 +68,21 @@ class DQSettingsPage extends WizardPage {
 	}
 
 	public DQCalculationSetup getSetup(ProductSystem system) {
-		long psId = system.getId();
+		DQCalculationSetup setup = new DQCalculationSetup();
+		setup.productSystemId = system.getId();
 		DQSystemDao dqDao = new DQSystemDao(Database.get());
-		DQSystem pSystem = null;
 		DQSystemDescriptor pSystemDesc = processSystemViewer.getSelected();
-		if (pSystemDesc != null)
-			pSystem = dqDao.getForId(pSystemDesc.getId());
-		DQSystem eSystem = null;
+		if (pSystemDesc != null) {
+			setup.processDqSystem = dqDao.getForId(pSystemDesc.getId());
+		}
 		DQSystemDescriptor eSystemDesc = exchangeSystemViewer.getSelected();
-		if (eSystemDesc != null)
-			eSystem = dqDao.getForId(eSystemDesc.getId());
-		return new DQCalculationSetup(psId, aggregationType, roundingMode, processingType, pSystem, eSystem);
+		if (eSystemDesc != null) {
+			setup.exchangeDqSystem = dqDao.getForId(eSystemDesc.getId());
+		}
+		setup.aggregationType = aggregationType;
+		setup.roundingMode = roundingMode;
+		setup.processingType = processingType;
+		return setup;
 	}
 
 	private void loadDefaults() {

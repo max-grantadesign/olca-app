@@ -17,7 +17,6 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Menu;
-import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.ui.forms.IManagedForm;
 import org.eclipse.ui.forms.editor.FormEditor;
 import org.eclipse.ui.forms.editor.FormPage;
@@ -30,10 +29,10 @@ import org.openlca.app.components.ResultTypeSelection;
 import org.openlca.app.components.ResultTypeSelection.EventHandler;
 import org.openlca.app.db.Cache;
 import org.openlca.app.rcp.images.Icon;
+import org.openlca.app.rcp.images.Images;
 import org.openlca.app.util.Actions;
 import org.openlca.app.util.CostResultDescriptor;
 import org.openlca.app.util.CostResults;
-import org.openlca.app.rcp.images.Images;
 import org.openlca.app.util.Labels;
 import org.openlca.app.util.Numbers;
 import org.openlca.app.util.UI;
@@ -94,24 +93,16 @@ public class ContributionTreePage extends FormPage {
 	}
 
 	private void createTree(FormToolkit toolkit, Composite treeContainer) {
-		tree = new TreeViewer(treeContainer, SWT.FULL_SELECTION
-				| SWT.MULTI | SWT.BORDER);
+		tree = Trees.createViewer(treeContainer, HEADERS, new ContributionLabelProvider());
 		tree.setAutoExpandLevel(2);
 		tree.getTree().setLinesVisible(false);
-		tree.getTree().setHeaderVisible(true);
-		for (int i = 0; i < HEADERS.length; i++) {
-			TreeColumn c = new TreeColumn(tree.getTree(), SWT.NULL);
-			c.setText(HEADERS[i]);
-		}
-		tree.setColumnProperties(HEADERS);
 		tree.setContentProvider(new ContributionContentProvider());
-		tree.setLabelProvider(new ContributionLabelProvider());
 		tree.setSorter(new ContributionSorter());
-		UI.gridData(tree.getTree(), true, true);
 		toolkit.adapt(tree.getTree(), false, false);
 		toolkit.paintBordersFor(tree.getTree());
 		createMenu();
 		Trees.bindColumnWidths(tree.getTree(), 0.20, 0.50, 0.20, 0.10);
+		tree.getTree().getColumns()[2].setAlignment(SWT.RIGHT);
 	}
 
 	private void createMenu() {

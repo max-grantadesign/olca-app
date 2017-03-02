@@ -5,13 +5,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
@@ -25,6 +25,7 @@ import org.openlca.app.M;
 import org.openlca.app.components.ContributionImage;
 import org.openlca.app.db.Cache;
 import org.openlca.app.rcp.images.Images;
+import org.openlca.app.results.ContributionCutoff.CutoffContentProvider;
 import org.openlca.app.util.Actions;
 import org.openlca.app.util.DQUI;
 import org.openlca.app.util.Labels;
@@ -97,30 +98,29 @@ public class TotalFlowResultPage extends FormPage {
 		UI.gridData(section, true, true);
 		Composite comp = UI.sectionClient(section, toolkit);
 		UI.gridLayout(comp, 1);
-		String[] headers = new String[] { M.Name, M.Category, M.SubCategory, M.Amount };
+		String[] headers = new String[] { M.Name, M.Category, M.SubCategory, M.Amount, M.Unit };
 		if (DQUI.displayExchangeQuality(dqResult)) {
 			headers = DQUI.appendTableHeaders(headers, dqResult.setup.exchangeDqSystem);
 		}
+		ContributionCutoff spinner = ContributionCutoff.create(comp, toolkit);
 		Label label = new Label();
 		TreeViewer viewer = Trees.createViewer(comp, headers, label);
 		viewer.setContentProvider(new ContentProvider());
 		createColumnSorters(viewer, label);
-		double[] widths = { .4, .2, .2, .2 };
+		double[] widths = { .4, .2, .2, .15, .05 };
 		if (DQUI.displayExchangeQuality(dqResult)) {
 			widths = DQUI.adjustTableWidths(widths, dqResult.setup.exchangeDqSystem);
 		}
+		viewer.getTree().getColumns()[3].setAlignment(SWT.RIGHT);
 		Trees.bindColumnWidths(viewer.getTree(), DQUI.MIN_COL_WIDTH, widths);
 		Actions.bind(viewer, TreeClipboard.onCopy(viewer));
+		spinner.register(viewer);
 		return viewer;
 	}
 
 	private void createColumnSorters(TreeViewer viewer, Label label) {
-		Viewers.sortByLabels(viewer, label, 0, 1, 2, 3);
-		Function<FlowDescriptor, Double> amount = (f) -> {
-			FlowResult r = result.getTotalFlowResult(f);
-			return r == null ? 0 : r.value;
-		};
-		Viewers.sortByDouble(viewer, amount, 4);
+		Viewers.sortByLabels(viewer, label, 0, 1, 2, 4);
+		Viewers.sortByDouble(viewer, this::getAmount, 3);
 		if (DQUI.displayExchangeQuality(dqResult)) {
 			for (int i = 0; i < dqResult.setup.exchangeDqSystem.indicators.size(); i++) {
 				Viewers.sortByDouble(viewer, label, i + 5);
@@ -128,16 +128,19 @@ public class TotalFlowResultPage extends FormPage {
 		}
 	}
 
-	private class ContentProvider extends ArrayContentProvider
-			implements ITreeContentProvider {
+	private class ContentProvider extends ArrayContentProvider implements ITreeContentProvider, CutoffContentProvider {
+
+		private double cutoff;
 
 		@Override
 		public Object[] getChildren(Object e) {
 			if (!(e instanceof FlowDescriptor))
 				return null;
 			FlowDescriptor flow = (FlowDescriptor) e;
+			double cutoffValue = getAmount(flow) * this.cutoff;
 			return result.getProcessContributions(flow).contributions.stream()
 					.filter(i -> i.amount != 0)
+					.filter(i -> Math.abs(i.amount) >= cutoffValue)
 					.sorted((i1, i2) -> -Double.compare(i1.amount, i2.amount))
 					.map(i -> new Contribution(i, flow))
 					.collect(Collectors.toList())
@@ -153,7 +156,14 @@ public class TotalFlowResultPage extends FormPage {
 
 		@Override
 		public boolean hasChildren(Object e) {
-			return e instanceof FlowDescriptor;
+			if (e instanceof FlowDescriptor)
+				return true;
+			return false;
+		}
+
+		@Override
+		public void setCutoff(double cutoff) {
+			this.cutoff = cutoff;
 		}
 	}
 
@@ -162,7 +172,7 @@ public class TotalFlowResultPage extends FormPage {
 		private ContributionImage img = new ContributionImage(Display.getCurrent());
 
 		Label() {
-			super(dqResult, dqResult != null ? dqResult.setup.exchangeDqSystem : null, 4);
+			super(dqResult, dqResult != null ? dqResult.setup.exchangeDqSystem : null, 5);
 		}
 
 		@Override
@@ -204,9 +214,10 @@ public class TotalFlowResultPage extends FormPage {
 			case 2:
 				return category.getRight();
 			case 3:
-				double v = result.getTotalFlowResult(flow).value;
-				String unit = Labels.getRefUnit(flow, cache);
-				return Numbers.format(v) + " " + unit;
+				double v = getAmount(flow);
+				return Numbers.format(v);
+			case 4:
+				return Labels.getRefUnit(flow, cache);
 			default:
 				return null;
 			}
@@ -223,9 +234,10 @@ public class TotalFlowResultPage extends FormPage {
 			case 2:
 				return category.getRight();
 			case 3:
-				double v = item.item.amount;
-				String unit = Labels.getRefUnit(item.flow, cache);
-				return Numbers.format(v) + " " + unit;
+				double v = getAmount(item);
+				return Numbers.format(v);
+			case 4:
+				return Labels.getRefUnit(item.flow, cache);
 			default:
 				return null;
 			}
@@ -246,6 +258,17 @@ public class TotalFlowResultPage extends FormPage {
 
 	}
 
+	private double getAmount(Object element) {
+		if (element instanceof FlowDescriptor) {
+			FlowResult r = result.getTotalFlowResult((FlowDescriptor) element);
+			return r == null ? 0 : r.value;
+		} else if (element instanceof Contribution) {
+			Contribution item = (Contribution) element;
+			return item.item.amount;
+		}
+		return 0d;
+	}
+
 	private class Contribution {
 
 		final ContributionItem<ProcessDescriptor> item;
@@ -256,4 +279,5 @@ public class TotalFlowResultPage extends FormPage {
 			this.flow = flow;
 		}
 	}
+
 }

@@ -7,14 +7,12 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.ui.IImportWizard;
 import org.eclipse.ui.IWorkbench;
-import org.openlca.app.App;
 import org.openlca.app.M;
 import org.openlca.app.db.Cache;
 import org.openlca.app.db.Database;
 import org.openlca.app.navigation.Navigator;
 import org.openlca.app.preferencepages.IoPreference;
 import org.openlca.app.rcp.images.Icon;
-import org.openlca.ilcd.util.IlcdConfig;
 import org.openlca.io.ilcd.ILCDImport;
 import org.openlca.io.ilcd.input.ImportConfig;
 import org.slf4j.Logger;
@@ -79,9 +77,10 @@ public class ILCDImportWizard extends Wizard implements IImportWizard {
 
 	private ImportConfig createConfig(File zip) {
 		ImportConfig config = new ImportConfig(zip, Database.get());
-//		if (App.runsInDevMode())
-			config.importFlows = true;
-		config.ilcdConfig = new IlcdConfig(IoPreference.getIlcdLanguage());
+		config.importFlows = true;
+		String lang = IoPreference.getIlcdLanguage();
+		if (!"en".equals(lang))
+			config.langs = new String[] { lang, "en" };
 		return config;
 	}
 }

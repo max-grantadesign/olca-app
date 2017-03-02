@@ -2,6 +2,7 @@ package org.openlca.app.cloud.ui.commits;
 
 import org.eclipse.jface.action.Action;
 import org.openlca.app.App;
+import org.openlca.app.M;
 import org.openlca.app.cloud.CloudUtil;
 import org.openlca.app.cloud.index.DiffIndex;
 import org.openlca.app.db.Database;
@@ -11,6 +12,7 @@ import org.openlca.app.navigation.INavigationElement;
 import org.openlca.app.navigation.ModelElement;
 import org.openlca.app.navigation.Navigator;
 import org.openlca.app.util.Error;
+import org.openlca.app.util.Question;
 import org.openlca.cloud.api.RepositoryClient;
 import org.openlca.cloud.model.data.Commit;
 import org.openlca.cloud.model.data.Dataset;
@@ -26,19 +28,21 @@ class CheckoutAction extends Action {
 
 	@Override
 	public String getText() {
-		return "#Checkout...";
+		return M.Checkout;
 	}
 
 	@Override
 	public void run() {
+		if (!Question.ask(M.Checkout, M.AreYouSureYouWantToCheckout))
+			return;
 		Database.getIndexUpdater().disable();
 		DiffIndex index = Database.getDiffIndex();
 		index.clear();
 		Commit commit = historyViewer.getSelected();
 		Runner runner = new Runner(commit.id);
-		App.runWithProgress("#Checking out commit '" + commit.message + "'", runner);
+		App.runWithProgress(M.CheckingOutCommit, runner);
 		if (runner.exception != null)
-			Error.showBox("#An error occured while receiving data for commit " + commit.id);
+			Error.showBox(M.AnErrorOccuredWhileReceivingCommitData);
 		Navigator.refresh();
 		IDatabaseConfiguration db = Database.getActiveConfiguration();
 		INavigationElement<?> element = Navigator.findElement(db);

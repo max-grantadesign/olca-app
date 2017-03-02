@@ -41,20 +41,26 @@ import org.openlca.core.model.descriptors.BaseDescriptor;
  */
 public class Trees {
 
-	public static TreeViewer createViewer(Composite parent, String[] headers) {
+	public static TreeViewer createViewer(Composite parent, String... headers) {
 		return createViewer(parent, headers, null);
+	}
+
+	public static TreeViewer createViewer(Composite parent, IBaseLabelProvider label) {
+		return createViewer(parent, null, label);
 	}
 
 	public static TreeViewer createViewer(Composite parent, String[] headers, IBaseLabelProvider label) {
 		TreeViewer viewer = new TreeViewer(parent, SWT.BORDER | SWT.FULL_SELECTION | SWT.VIRTUAL | SWT.MULTI);
-		viewer.setColumnProperties(headers);
+		Tree tree = viewer.getTree();
+		boolean hasColumns = headers != null && headers.length > 0;
+		tree.setLinesVisible(hasColumns);
+		tree.setHeaderVisible(hasColumns);
+		if (hasColumns) {
+			createColumns(viewer, headers, label);
+		}
 		if (label != null) {
 			viewer.setLabelProvider(label);
 		}
-		Tree tree = viewer.getTree();
-		tree.setLinesVisible(true);
-		tree.setHeaderVisible(true);
-		createColumns(viewer, headers, label);
 		GridData data = UI.gridData(tree, true, true);
 		data.minimumHeight = 150;
 		return viewer;
@@ -209,6 +215,7 @@ public class Trees {
 		private double[] percents;
 		private int minimum;
 		private boolean enabled = true;
+		private boolean initialized;
 
 		private TreeResizeListener(Tree tree, int minimum, double[] percents) {
 			this.tree = tree;
@@ -218,9 +225,11 @@ public class Trees {
 
 		@Override
 		public void controlResized(ControlEvent e) {
-			if (!enabled)
+			if (!enabled && initialized)
 				return;
 			double width = tree.getSize().x - 25;
+			if (width <= 0)
+				return;
 			TreeColumn[] columns = tree.getColumns();
 			int indexOfLargest = -1;
 			double max = 0;
@@ -242,6 +251,7 @@ public class Trees {
 			if (diff > 0) {
 				columns[indexOfLargest].setWidth((int) (max - diff));
 			}
+			initialized = true;
 		}
 
 	}

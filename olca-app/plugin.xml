@@ -73,11 +73,12 @@
       
       <!-- developer tools -->
       <editor
-      		class="org.openlca.app.devtools.sql.SqlEditor"
-      		default="false"
-      		id="SqlEditor"
-      		name="SQL"
-      		icon="icons/sql.png">
+            class="org.openlca.app.devtools.sql.SqlEditor"
+            contributorClass="org.openlca.app.devtools.Toolbar"
+            default="false"
+            icon="icons/sql.png"
+            id="SqlEditor"
+            name="SQL">
       </editor>
       <editor
       		class="org.openlca.app.devtools.js.JavaScriptEditor"
@@ -245,14 +246,6 @@
             icon="icons/file.png"
             name="Log file">
       </editor>       
-      <!-- other --> 
-      <editor
-            class="org.openlca.app.rcp.browser.MozillaConfigView"
-            default="false"
-            icon="icons/firefox.png"
-            id="olca.MozillaConfigView"
-            name="Browser configuration">
-      </editor>
       <editor
             class="org.openlca.app.editors.UsageView"
             default="false"
@@ -486,7 +479,7 @@
          </property>
          <property
                name="aboutText"
-               value="openLCA 1.6.0&#x0A;&#x0A;Copyright (c) 2007 - 2016 GreenDelta. All rights reserved.&#x0A;Visit http://openlca.org and http://greendelta.com&#x0A;&#x0A;This product includes software developed in the openLCA &#x0A;project and other open source software.">
+               value="openLCA 1.6.1&#x0A;&#x0A;Copyright (c) 2007 - 2017 GreenDelta. All rights reserved.&#x0A;Visit http://openlca.org and http://greendelta.com&#x0A;&#x0A;This product includes software developed in the openLCA &#x0A;project and other open source software.">
          </property>
          <property
                name="aboutImage"
@@ -504,7 +497,7 @@
                value="openLCA" />
          <property
                name="startupProgressRect"
-               value="0,360,540,5">
+               value="0,400,565,5">
          </property>
          <property
                name="startupForegroundColor"
@@ -512,7 +505,7 @@
          </property>
          <property
                name="startupMessageRect"
-               value="7,500,445,20">
+               value="7,525,445,20">
          </property>
          <property
                name="preferenceCustomization"
@@ -605,7 +598,7 @@
          </possibleChildren>
       </navigatorContent>
       <actionProvider
-            class="org.openlca.app.navigation.NavigationActionProvider"
+            class="org.openlca.app.navigation.actions.NavigationActionProvider"
             id="actionprovider.navigation"
             priority="normal">
          <enablement></enablement>

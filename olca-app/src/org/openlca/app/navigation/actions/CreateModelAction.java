@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Opens the 'New'-wizard for a model type.
  */
-public class CreateModelAction extends Action implements INavigationAction {
+class CreateModelAction extends Action implements INavigationAction {
 
 	private Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -123,7 +123,7 @@ public class CreateModelAction extends Action implements INavigationAction {
 		case PARAMETER:
 			return M.NewParameter;
 		case DQ_SYSTEM:
-			return "#New data quality system";
+			return M.NewDataQualitySystem;
 		default:
 			return M.Unknown + "?";
 		}

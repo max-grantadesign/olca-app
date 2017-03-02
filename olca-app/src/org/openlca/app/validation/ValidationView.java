@@ -12,16 +12,16 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Tree;
-import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.openlca.app.App;
+import org.openlca.app.M;
 import org.openlca.app.db.Database;
 import org.openlca.app.rcp.images.Icon;
 import org.openlca.app.rcp.images.Images;
+import org.openlca.app.util.Info;
 import org.openlca.app.util.UI;
 import org.openlca.app.util.trees.Trees;
 import org.openlca.app.util.viewers.Viewers;
@@ -30,7 +30,6 @@ import org.openlca.core.database.CategoryDao;
 import org.openlca.core.database.references.IReferenceSearch.Reference;
 import org.openlca.core.model.Category;
 import org.openlca.core.model.Parameter;
-import org.openlca.core.model.descriptors.BaseDescriptor;
 import org.openlca.core.model.descriptors.CategorizedDescriptor;
 
 public class ValidationView extends ViewPart {
@@ -51,27 +50,17 @@ public class ValidationView extends ViewPart {
 	}
 
 	private void createViewer(Composite parent) {
-		viewer = new TreeViewer(parent, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI);
-		viewer.setContentProvider(new ContentProvider());
-		viewer.setLabelProvider(new StatusLabel());
-		Tree tree = viewer.getTree();
-		UI.gridData(tree, true, true);
 		String[] columnHeaders = { "Description", "Path" };
-		tree.setLinesVisible(true);
-		tree.setHeaderVisible(true);
-		for (String p : columnHeaders)
-			new TreeColumn(tree, SWT.NULL).setText(p);
-		viewer.setColumnProperties(columnHeaders);
+		viewer = Trees.createViewer(parent, columnHeaders, new StatusLabel());
+		viewer.setContentProvider(new ContentProvider());
 		viewer.addDoubleClickListener((e) -> {
-			Object element = Viewers.getFirst(e.getSelection());
-			if (element == null || element instanceof StatusList)
+			Object el = Viewers.getFirst(e.getSelection());
+			if (el == null || el instanceof StatusList)
 				return;
-			ModelStatus status = element instanceof ModelStatus ? (ModelStatus) element
-					: ((StatusEntry) element).status;
-			BaseDescriptor descriptor = Database.createRootDao(status.modelType).getDescriptor(status.id);
-			App.openEditor(descriptor);
+			ModelStatus status = el instanceof ModelStatus ? (ModelStatus) el : ((StatusEntry) el).status;
+			App.openEditor(Database.createCategorizedDao(status.modelType).getDescriptor(status.id));
 		});
-		Trees.bindColumnWidths(tree, 0.5, 0.5);
+		Trees.bindColumnWidths(viewer.getTree(), 0.5, 0.5);
 	}
 
 	public static void refresh() {
@@ -83,7 +72,10 @@ public class ValidationView extends ViewPart {
 				DatabaseValidation validation = new DatabaseValidation();
 				result.addAll(validation.evaluateAll());
 			});
-			instance.viewer.setInput(createModel(result));
+			StatusList[] model = createModel(result);
+			instance.viewer.setInput(model);
+			if (model.length == 0)
+				Info.showBox(M.DatabaseValidationCompleteNoErrorsWereFound);
 		} catch (PartInitException e) {
 			e.printStackTrace();
 		}
@@ -191,12 +183,12 @@ public class ValidationView extends ViewPart {
 			}
 			int models = list.list.size();
 			if (list.status == Status.WARNING)
-				return "#Warnings (" + total + " in " + models + " models)";
-			return "#Errors (" + total + " in " + models + " models)";
+				return M.Warnings + " (" + total + " in " + models + " models)";
+			return M.Errors + " (" + total + " in " + models + " models)";
 		}
 
 		private String getText(ModelStatus status, int column) {
-			CategorizedDescriptor descriptor = Database.createRootDao(status.modelType).getDescriptor(status.id);
+			CategorizedDescriptor descriptor = Database.createCategorizedDao(status.modelType).getDescriptor(status.id);
 			Category category = null;
 			if (descriptor.getCategory() != null)
 				category = new CategoryDao(Database.get()).getForId(descriptor.getCategory());
@@ -225,12 +217,12 @@ public class ValidationView extends ViewPart {
 				return null;
 			Reference ref = entry.reference;
 			if (ref == null)
-				return "#No reference set";
+				return M.NoReferenceSet;
 			String text = "";
 			if (ref.id == 0)
-				text = "#Missing ";
+				text = "Missing ";
 			else
-				text = "#Broken ";
+				text = "Broken ";
 			if (ref.getType() == Parameter.class) {
 				return text += "parameter '" + ref.property + "' in formula";
 			} else {

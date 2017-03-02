@@ -1,5 +1,8 @@
 package org.openlca.app.rcp;
 
+import java.util.Objects;
+
+import org.eclipse.core.runtime.IExtension;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.ICoolBarManager;
@@ -17,6 +20,9 @@ import org.eclipse.ui.actions.ActionFactory.IWorkbenchAction;
 import org.eclipse.ui.actions.ContributionItemFactory;
 import org.eclipse.ui.application.ActionBarAdvisor;
 import org.eclipse.ui.application.IActionBarConfigurer;
+import org.eclipse.ui.internal.WorkbenchPlugin;
+import org.eclipse.ui.internal.registry.ActionSetRegistry;
+import org.eclipse.ui.internal.registry.IActionSetDescriptor;
 import org.openlca.app.Config;
 import org.openlca.app.M;
 import org.openlca.app.components.replace.ReplaceFlowsDialog;
@@ -27,16 +33,14 @@ import org.openlca.app.devtools.csharp.CSharpEditor;
 import org.openlca.app.devtools.sql.SqlEditor;
 import org.openlca.app.editors.LogFileEditor;
 import org.openlca.app.editors.StartPage;
-import org.openlca.app.rcp.browser.MozillaConfigView;
 import org.openlca.app.rcp.images.Icon;
 import org.openlca.app.rcp.images.Images;
 import org.openlca.app.rcp.plugins.PluginManager;
 import org.openlca.app.util.Actions;
-import org.openlca.app.util.DefaultInput;
 import org.openlca.app.util.Desktop;
-import org.openlca.app.util.Editors;
 import org.openlca.core.model.ModelType;
 
+@SuppressWarnings("restriction")
 public class RcpActionBarAdvisor extends ActionBarAdvisor {
 
 	private IWorkbenchAction aboutAction;
@@ -72,6 +76,22 @@ public class RcpActionBarAdvisor extends ActionBarAdvisor {
 		fillFileMenu(menuBar);
 		fillWindowMenu(menuBar);
 		fillHelpMenu(menuBar);
+		removeActionSets();
+	}
+
+	private void removeActionSets() {
+		// currently we just remove the cheat-sheets here; see:
+		// http://random-eclipse-tips.blogspot.de/2009/02/eclipse-rcp-removing-unwanted_02.html
+		ActionSetRegistry reg = WorkbenchPlugin.getDefault().getActionSetRegistry();
+		IActionSetDescriptor[] actionSets = reg.getActionSets();
+		for (int i = 0; i < actionSets.length; i++) {
+			if (Objects.equals(actionSets[i].getId(),
+					"org.eclipse.ui.cheatsheets.actionSet")) {
+				IExtension ext = actionSets[i].getConfigurationElement()
+						.getDeclaringExtension();
+				reg.removeExtension(ext, new Object[] { actionSets[i] });
+			}
+		}
 	}
 
 	private void fillHelpMenu(IMenuManager menuBar) {
@@ -113,10 +133,6 @@ public class RcpActionBarAdvisor extends ActionBarAdvisor {
 		createMassReplaceMenu(windowMenu);
 		windowMenu.add(new Separator());
 		windowMenu.add(new FormulaConsoleAction());
-		if (MozillaConfigView.canShow()) {
-			windowMenu.add(Actions.create(M.BrowserConfiguration, Icon.FIREFOX.descriptor(),
-					MozillaConfigView::open));
-		}
 		menuBar.add(windowMenu);
 	}
 
@@ -130,10 +146,10 @@ public class RcpActionBarAdvisor extends ActionBarAdvisor {
 	}
 
 	private void createMassReplaceMenu(MenuManager windowMenu) {
-		MenuManager m = new MenuManager("#Mass-replace");
+		MenuManager m = new MenuManager(M.Bulkreplace);
 		windowMenu.add(m);
-		m.add(Actions.create("#Flows", Images.descriptor(ModelType.FLOW), ReplaceFlowsDialog::openDialog));
-		m.add(Actions.create("#Providers", Images.descriptor(ModelType.PROCESS), ReplaceProvidersDialog::openDialog));
+		m.add(Actions.create(M.Flows, Images.descriptor(ModelType.FLOW), ReplaceFlowsDialog::openDialog));
+		m.add(Actions.create(M.Providers, Images.descriptor(ModelType.PROCESS), ReplaceProvidersDialog::openDialog));
 	}
 
 	@Override
@@ -210,7 +226,7 @@ public class RcpActionBarAdvisor extends ActionBarAdvisor {
 
 		@Override
 		public void run() {
-			Editors.open(new DefaultInput(LogFileEditor.ID, "Log file"), LogFileEditor.ID);
+			LogFileEditor.open();
 		}
 	}
 }

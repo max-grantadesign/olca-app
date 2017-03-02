@@ -16,9 +16,8 @@ import org.openlca.app.rcp.RcpActivator;
 import org.openlca.core.database.IDatabase;
 import org.openlca.ilcd.descriptors.ProcessDescriptor;
 import org.openlca.ilcd.io.DataStoreException;
-import org.openlca.ilcd.io.NetworkClient;
+import org.openlca.ilcd.io.SodaClient;
 import org.openlca.ilcd.processes.Process;
-import org.openlca.ilcd.util.IlcdConfig;
 import org.openlca.ilcd.util.ProcessBag;
 import org.openlca.io.ilcd.input.ImportConfig;
 import org.openlca.io.ilcd.input.ProcessImport;
@@ -58,9 +57,9 @@ public class ImportWizard extends Wizard implements IImportWizard {
 			InvocationTargetException, InterruptedException {
 		List<ProcessDescriptor> processes = processSearchPage
 				.getSelectedProcesses();
-		NetworkClient client = IoPreference.createClient();
+		SodaClient client = IoPreference.createClient();
 		ImportConfig config = new ImportConfig(client, database);
-		config.ilcdConfig = new IlcdConfig(IoPreference.getIlcdLanguage());
+		config.langs = new String[] { IoPreference.getIlcdLanguage(), "en" };
 		client.connect();
 		getContainer().run(true, true, monitor -> {
 			monitor.beginTask(M.ILCD_RunImport, IProgressMonitor.UNKNOWN);
@@ -79,7 +78,7 @@ public class ImportWizard extends Wizard implements IImportWizard {
 			Process process = config.store.get(Process.class,
 					descriptor.uuid);
 			if (process != null) {
-				ProcessBag bag = new ProcessBag(process, config.ilcdConfig);
+				ProcessBag bag = new ProcessBag(process, config.langs);
 				if (bag.hasProductModel()) {
 					SystemImport systemImport = new SystemImport(config);
 					systemImport.run(process);

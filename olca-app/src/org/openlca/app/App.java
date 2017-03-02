@@ -9,6 +9,7 @@ import org.eclipse.ui.IEditorReference;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.progress.IProgressService;
+import org.openlca.app.db.Cache;
 import org.openlca.app.editors.ModelEditorInput;
 import org.openlca.app.preferencepages.FeatureFlag;
 import org.openlca.app.rcp.RcpActivator;
@@ -19,10 +20,12 @@ import org.openlca.core.math.JavaSolver;
 import org.openlca.core.model.CategorizedEntity;
 import org.openlca.core.model.ModelType;
 import org.openlca.core.model.descriptors.BaseDescriptor;
+import org.openlca.core.model.descriptors.CategorizedDescriptor;
 import org.openlca.core.model.descriptors.Descriptors;
 import org.openlca.eigen.NativeLibrary;
 import org.openlca.eigen.solvers.BalancedSolver;
 import org.openlca.eigen.solvers.DenseSolver;
+import org.openlca.updates.script.CalculationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +59,10 @@ public class App {
 		return solver;
 	}
 
+	public static CalculationContext getCalculationContext() {
+		return new CalculationContext(Cache.getMatrixCache(), Cache.getEntityCache(), getSolver());
+	}
+
 	/**
 	 * Returns the version of the openLCA application. If there is a version
 	 * defined in the ini-file (-olcaVersion argument) this is returned.
@@ -84,11 +91,10 @@ public class App {
 	}
 
 	public static void openEditor(CategorizedEntity model) {
-		BaseDescriptor descriptor = Descriptors.toDescriptor(model);
-		openEditor(descriptor);
+		openEditor(Descriptors.toDescriptor(model));
 	}
 
-	public static void openEditor(BaseDescriptor d) {
+	public static void openEditor(CategorizedDescriptor d) {
 		if (d == null) {
 			log.error("model is null, could not open editor");
 			return;

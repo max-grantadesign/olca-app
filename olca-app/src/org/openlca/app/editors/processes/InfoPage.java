@@ -31,6 +31,7 @@ import org.openlca.app.editors.processes.data_quality.DataQualityShell;
 import org.openlca.app.editors.processes.kml.EditorHandler;
 import org.openlca.app.editors.processes.kml.KmlUtil;
 import org.openlca.app.editors.processes.kml.MapEditor;
+import org.openlca.app.navigation.Navigator;
 import org.openlca.app.preferencepages.FeatureFlag;
 import org.openlca.app.rcp.images.Images;
 import org.openlca.app.rcp.images.Overlay;
@@ -41,6 +42,7 @@ import org.openlca.app.util.UI;
 import org.openlca.app.viewers.combo.ExchangeViewer;
 import org.openlca.app.viewers.combo.LocationViewer;
 import org.openlca.core.database.LocationDao;
+import org.openlca.core.model.DQSystem;
 import org.openlca.core.model.Location;
 import org.openlca.core.model.ModelType;
 import org.openlca.core.model.Process;
@@ -48,7 +50,6 @@ import org.openlca.util.Geometries;
 import org.openlca.util.KeyGen;
 
 import com.google.common.eventbus.Subscribe;
-
 
 class InfoPage extends ModelPage<Process> {
 
@@ -141,44 +142,49 @@ class InfoPage extends ModelPage<Process> {
 	}
 
 	private void createDQSection(Composite body) {
-		Composite composite = UI.formSection(body, toolkit, "#Data quality");
-		toolkit.createLabel(composite, "#Process schema");
+		Composite composite = UI.formSection(body, toolkit, M.DataQuality);
+		toolkit.createLabel(composite, M.ProcessSchema);
 		DQSystemViewer processSystemViewer = new DQSystemViewer(composite);
 		processSystemViewer.setNullable(true);
 		processSystemViewer.setInput(Database.get());
 		getBinding().onModel(() -> getModel(), "dqSystem", processSystemViewer);
 		createDqEntryRow(composite);
-		toolkit.createLabel(composite, "#Input/Output schema");
+		toolkit.createLabel(composite, M.FlowSchema);
 		DQSystemViewer ioSystemViewer = new DQSystemViewer(composite);
 		ioSystemViewer.setNullable(true);
 		ioSystemViewer.setInput(Database.get());
 		getBinding().onModel(() -> getModel(), "exchangeDqSystem", ioSystemViewer);
-		toolkit.createLabel(composite, "#Social schema");
+		toolkit.createLabel(composite, M.SocialSchema);
 		DQSystemViewer socialSystemViewer = new DQSystemViewer(composite);
 		socialSystemViewer.setNullable(true);
 		socialSystemViewer.setInput(Database.get());
 		getBinding().onModel(() -> getModel(), "socialDqSystem", socialSystemViewer);
 	}
 
-	private Hyperlink createDqEntryRow(Composite composite) {
-		UI.formLabel(composite, toolkit, "#Data quality entry");
-		Hyperlink link = UI.formLink(composite, toolkit, getDqEntryLabel());
-		Controls.onClick(link, e -> {
-			if (getModel().dqSystem == null) {
-				Error.showBox("Please select a data quality system first");				
-				return; 
-			}
-			String oldVal = getModel().dqEntry;
-			DataQualityShell shell = DataQualityShell.withoutUncertainty(composite.getShell(), getModel().dqSystem,
-					getModel().dqEntry, InfoPage.this::onDqEntryDialogOk, InfoPage.this::onDqEntryDialogDelete);
-			shell.addDisposeListener(e2 -> {
-				if (Objects.equals(oldVal, getModel().dqEntry))
-					return;
-				link.setText(getDqEntryLabel());
-				getEditor().setDirty(true);
-			});
-			shell.open();
-		});
+	private Hyperlink createDqEntryRow(Composite parent) {
+		UI.formLabel(parent, toolkit, M.DataQualityEntry);
+		Hyperlink link = UI.formLink(parent, toolkit, getDqEntryLabel());
+		Controls.onClick(
+				link,
+				e -> {
+					if (getModel().dqSystem == null) {
+						Error.showBox("Please select a data quality system first");
+						return;
+					}
+					String oldVal = getModel().dqEntry;
+					DQSystem system = getModel().dqSystem;
+					String entry = getModel().dqEntry;
+					DataQualityShell shell = DataQualityShell.withoutUncertainty(parent.getShell(), system, entry);
+					shell.onOk = InfoPage.this::onDqEntryDialogOk;
+					shell.onDelete = InfoPage.this::onDqEntryDialogDelete;
+					shell.addDisposeListener(e2 -> {
+						if (Objects.equals(oldVal, getModel().dqEntry))
+							return;
+						link.setText(getDqEntryLabel());
+						getEditor().setDirty(true);
+					});
+					shell.open();
+				});
 		return link;
 	}
 
@@ -282,6 +288,7 @@ class InfoPage extends ModelPage<Process> {
 			locationViewer.setInput(Database.get());
 			locationViewer.select(location);
 			kmlLink.setText(getKmlDisplayText());
+			Navigator.refresh();
 			return true;
 		}
 

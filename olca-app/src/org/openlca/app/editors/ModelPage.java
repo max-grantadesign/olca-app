@@ -18,11 +18,12 @@ import org.openlca.app.components.TextDropComponent;
 import org.openlca.app.rcp.images.Images;
 import org.openlca.app.util.Bean;
 import org.openlca.app.util.Colors;
+import org.openlca.app.util.Labels;
 import org.openlca.app.util.UI;
 import org.openlca.app.util.UIFactory;
 import org.openlca.core.model.CategorizedEntity;
 import org.openlca.core.model.ModelType;
-import org.openlca.core.model.descriptors.BaseDescriptor;
+import org.openlca.core.model.descriptors.CategorizedDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,7 @@ public abstract class ModelPage<T extends CategorizedEntity> extends FormPage {
 				return link;
 			}
 			CategorizedEntity entity = (CategorizedEntity) value;
-			link.setText(entity.getName());
+			link.setText(Labels.getDisplayName(entity));
 			link.setImage(Images.get(entity));
 			link.addHyperlinkListener(new ModelLinkClickedListener(entity));
 			return link;
@@ -149,7 +150,7 @@ public abstract class ModelPage<T extends CategorizedEntity> extends FormPage {
 		return text;
 	}
 
-	public class ModelLinkClickedListener extends HyperlinkAdapter {
+	private class ModelLinkClickedListener extends HyperlinkAdapter {
 
 		private Object model;
 
@@ -157,16 +158,12 @@ public abstract class ModelPage<T extends CategorizedEntity> extends FormPage {
 			this.model = entity;
 		}
 
-		public ModelLinkClickedListener(BaseDescriptor descriptor) {
-			this.model = descriptor;
-		}
-
 		@Override
 		public void linkActivated(HyperlinkEvent e) {
 			if (model instanceof CategorizedEntity)
 				App.openEditor((CategorizedEntity) model);
-			else if (model instanceof BaseDescriptor)
-				App.openEditor((BaseDescriptor) model);
+			else if (model instanceof CategorizedDescriptor)
+				App.openEditor((CategorizedDescriptor) model);
 		}
 
 	}
