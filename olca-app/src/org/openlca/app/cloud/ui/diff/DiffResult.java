@@ -58,12 +58,17 @@ public class DiffResult {
 		if (remote == null && local == null)
 			return DiffResponse.NONE;
 		if (remote == null)
-			if (local.type == DiffType.DELETED || local.type == DiffType.NO_DIFF)
+			if (local.type == DiffType.NO_DIFF)
 				return DiffResponse.NONE;
-			else if (!ignoreRemote)
-				return DiffResponse.ADD_TO_REMOTE;
 			// ignore remote means that remote was not even fetched, we have to
 			// take this into account
+			else if (local.type == DiffType.DELETED)
+				if (ignoreRemote)
+					return DiffResponse.DELETE_FROM_REMOTE;
+				else
+					return DiffResponse.NONE;
+			else if (!ignoreRemote)
+				return DiffResponse.ADD_TO_REMOTE;
 			else if (local.type == DiffType.NEW)
 				return DiffResponse.ADD_TO_REMOTE;
 			else
@@ -125,6 +130,8 @@ public class DiffResult {
 	private boolean isEqual() {
 		boolean localDeleted = local.type == DiffType.DELETED;
 		if (localDeleted && !remote.isDeleted())
+			return false;
+		if (remote.isDeleted() && !localDeleted)
 			return false;
 		if (remote.type != local.getDataset().type)
 			return false;
@@ -189,9 +196,8 @@ public class DiffResult {
 		}
 		String r = "null";
 		if (remote != null) {
-			l = "modelType: " + local.getDataset().type;
-			l += ", name: " + local.getDataset().name;
-			l += ", type: " + local.type;
+			l = "modelType: " + remote.type;
+			l += ", name: " + remote.name;
 		}
 		String text = "local: {" + l + "}, remote: {" + r + "}, resultType: {" + getType() + "}";
 		return text;

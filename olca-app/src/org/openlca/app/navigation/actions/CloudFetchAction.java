@@ -1,12 +1,18 @@
 package org.openlca.app.navigation.actions;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.dialogs.ProgressMonitorDialog;
+import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.openlca.app.App;
 import org.openlca.app.M;
 import org.openlca.app.cloud.CloudUtil;
@@ -14,22 +20,27 @@ import org.openlca.app.cloud.JsonLoader;
 import org.openlca.app.cloud.index.Diff;
 import org.openlca.app.cloud.index.DiffIndex;
 import org.openlca.app.cloud.ui.DiffDialog;
+import org.openlca.app.cloud.ui.FetchNotifierMonitor;
 import org.openlca.app.cloud.ui.commits.CommitEntryDialog;
 import org.openlca.app.cloud.ui.commits.HistoryView;
 import org.openlca.app.cloud.ui.compare.json.JsonUtil;
 import org.openlca.app.cloud.ui.diff.DiffNode;
 import org.openlca.app.cloud.ui.diff.DiffNodeBuilder;
 import org.openlca.app.cloud.ui.diff.DiffResult;
+import org.openlca.app.cloud.ui.diff.DiffResult.DiffResponse;
 import org.openlca.app.db.Database;
 import org.openlca.app.navigation.DatabaseElement;
 import org.openlca.app.navigation.INavigationElement;
 import org.openlca.app.navigation.Navigator;
 import org.openlca.app.util.Error;
 import org.openlca.app.util.Info;
+import org.openlca.app.util.UI;
 import org.openlca.cloud.api.RepositoryClient;
 import org.openlca.cloud.model.data.Commit;
 import org.openlca.cloud.model.data.Dataset;
 import org.openlca.cloud.model.data.FetchRequestData;
+import org.openlca.cloud.model.data.FileReference;
+import org.openlca.cloud.util.WebRequests.WebRequestException;
 import org.openlca.core.model.Process;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +67,7 @@ class CloudFetchAction extends Action implements INavigationAction {
 			log.error("Error during fetch action", runner.error);
 			Error.showBox(runner.error.getMessage());
 		}
+		Navigator.refresh();
 		HistoryView.refresh();
 	}
 
@@ -75,10 +87,9 @@ class CloudFetchAction extends Action implements INavigationAction {
 			doContinue = showDifferences();
 			if (!doContinue)
 				return;
-			App.runWithProgress(M.FetchingData, this::fetchData);
+			fetchData();
 			if (error != null)
 				return;
-			Navigator.refresh(Navigator.getNavigationRoot());
 		}
 
 		private void fetchCommits() {
@@ -104,7 +115,7 @@ class CloudFetchAction extends Action implements INavigationAction {
 
 		private void requestFetch() {
 			try {
-				List<FetchRequestData> descriptors = client.requestFetch();
+				Set<FetchRequestData> descriptors = client.requestFetch();
 				differences = createDifferences(descriptors);
 				root = new DiffNodeBuilder(client.getConfig().getDatabase(), index).build(differences);
 			} catch (Exception e) {
@@ -115,19 +126,23 @@ class CloudFetchAction extends Action implements INavigationAction {
 		private boolean showDifferences() {
 			if (error != null)
 				return false;
-			if (root != null) {
-				JsonLoader loader = CloudUtil.getJsonLoader(client);
-				DiffDialog dialog = new DiffDialog(root, loader);
-				if (dialog.open() != IDialogConstants.OK_ID)
-					return false;
-			}
+			if (root == null)
+				return false;
+			if (root.children.isEmpty())
+				return true;
+			JsonLoader loader = CloudUtil.getJsonLoader(client);
+			DiffDialog dialog = new DiffDialog(root, loader);
+			if (dialog.open() != IDialogConstants.OK_ID)
+				return false;
 			return true;
 		}
 
 		private void fetchData() {
-			List<String> toFetch = new ArrayList<>();
+			Set<FileReference> toFetch = new HashSet<>();
 			Map<Dataset, JsonObject> mergedData = new HashMap<>();
 			for (DiffResult result : differences) {
+				if (result.getType() == DiffResponse.NONE)
+					continue;
 				Dataset dataset = result.getDataset();
 				JsonObject data = result.getMergedData();
 				String type = JsonUtil.getString(data, "@type");
@@ -137,16 +152,32 @@ class CloudFetchAction extends Action implements INavigationAction {
 				if (data != null) {
 					mergedData.put(dataset, data);
 				} else {
-					toFetch.add(dataset.refId);
+					toFetch.add(dataset.asFileReference());
 				}
 			}
 			try {
 				Database.getIndexUpdater().disable();
-				client.fetch(toFetch, mergedData);
-				Database.getIndexUpdater().enable();
-				FetchIndexHelper.index(differences, index);
+				ProgressMonitorDialog dialog = new ProgressMonitorDialog(UI.shell());
+				dialog.run(true, false, new IRunnableWithProgress() {
+
+					@Override
+					public void run(IProgressMonitor m) throws InvocationTargetException, InterruptedException {
+						try {
+							m.beginTask(M.Preparing, IProgressMonitor.UNKNOWN);
+							FetchNotifierMonitor monitor = new FetchNotifierMonitor(m, M.FetchingData);
+							client.fetch(toFetch, mergedData, monitor);
+							monitor.beginTask("#Indexing datasets", differences.size());
+							FetchIndexHelper.index(differences, index, (e) -> monitor.worked());
+							monitor.done();
+						} catch (WebRequestException e) {
+							throw new InvocationTargetException(e);
+						}
+					}
+				});
 			} catch (Exception e) {
 				error = e;
+			} finally {
+				Database.getIndexUpdater().enable();
 			}
 		}
 
@@ -177,8 +208,7 @@ class CloudFetchAction extends Action implements INavigationAction {
 			Info.showBox(M.UpToDate);
 		}
 
-		private List<DiffResult> createDifferences(
-				List<FetchRequestData> remotes) {
+		private List<DiffResult> createDifferences(Set<FetchRequestData> remotes) {
 			List<DiffResult> differences = new ArrayList<>();
 			for (FetchRequestData identifier : remotes) {
 				Diff local = index.get(identifier.refId);
