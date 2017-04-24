@@ -21,13 +21,16 @@ public class CSharp {
 
 	private static Logger log = LoggerFactory.getLogger(CSharp.class);
 	
-	private static boolean initialized = false;
+	public static boolean initialized = false;
 	private static org.openlca.updates.script.Python python;
 
 	public static void eval(String script) {
 		try {
 			if (!initialized)
 				initialize();
+			String a = "asdf";
+			log.info("evaluating: " + a);
+			log.info("evaluating: " + script);
 			python.eval(script);
 		} catch (Exception e) {
 			log.error("failed to evaluate script", e);
@@ -41,7 +44,7 @@ public class CSharp {
 		return new File(workspace, "python");
 	}
 
-	private static synchronized void initialize() {
+	public static synchronized void initialize() {
 		if (initialized)
 			return;
 		Logger log = LoggerFactory.getLogger(Python.class);

@@ -18,6 +18,9 @@ public class CSharpEditor extends SimpleFormEditor implements IScriptEditor {
 
 	public static void open() {
         Editors.open(new DefaultInput(TYPE, UUID.randomUUID().toString(), "C#"), TYPE);
+        //Initialize c# socket with launch of dev tool
+        if (!CSharp.initialized) 
+			CSharp.initialize();
 	}
 
 	@Override
