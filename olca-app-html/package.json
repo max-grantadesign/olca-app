@@ -1,6 +1,6 @@
 {
   "name": "openLCA",
-  "version": "1.4.1",
+  "version": "1.6.1",
   "devDependencies": {
     "coffee": "^1.0.0",
     "gulp": "^3.8.11",
