@@ -22,7 +22,7 @@ project and other open source software.
    <launcherArgs>
       <programArgs>-nl en -data @noDefault
       </programArgs>
-      <vmArgs>-Xmx1024M
+      <vmArgs>-Xmx4G
 -Dosgi.framework.extensions=org.eclipse.fx.osgi
       </vmArgs>
       <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts

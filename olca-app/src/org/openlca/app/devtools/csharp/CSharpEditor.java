@@ -1,5 +1,7 @@
 package org.openlca.app.devtools.csharp;
 
+import java.util.UUID;
+
 import org.eclipse.ui.forms.editor.FormPage;
 import org.openlca.app.App;
 import org.openlca.app.devtools.IScriptEditor;
@@ -11,11 +13,11 @@ import org.openlca.app.util.Editors;
 
 public class CSharpEditor extends SimpleFormEditor implements IScriptEditor {
 
-	public static String ID = "CSharpEditor";
+	public static String TYPE = "CSharpEditor";
 	private Page page;
 
 	public static void open() {
-		Editors.open(new DefaultInput(ID, "C#"), ID);
+        Editors.open(new DefaultInput(TYPE, UUID.randomUUID().toString(), "C#"), TYPE);
 	}
 
 	@Override

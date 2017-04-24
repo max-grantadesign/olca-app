@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<?pde version="3.8"?><target name="openLCA target platform" sequenceNumber="29">
+<?pde version="3.8"?><target name="openLCA target platform" sequenceNumber="30">
 <locations>
 <location path="C:\olca\olca-app\olca-app-runtime\platform" type="Directory"/>
 </locations>
