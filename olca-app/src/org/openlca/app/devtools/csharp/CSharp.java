@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zeroturnaround.zip.ZipUtil;
 
-
 public class CSharp {
 
 	private static Logger log = LoggerFactory.getLogger(CSharp.class);
@@ -28,9 +27,9 @@ public class CSharp {
 		try {
 			if (!initialized)
 				initialize();
-			String a = "asdf";
-			log.info("evaluating: " + a);
-			log.info("evaluating: " + script);
+			log.info("evaluating: \n" + script);
+			python.setDatabase(Database.get());
+			python.setContext(App.getCalculationContext());
 			python.eval(script);
 		} catch (Exception e) {
 			log.error("failed to evaluate script", e);

@@ -18,7 +18,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.draw2d,
  org.eclipse.gef,
  com.ibm.icu,
- org.eclipse.fx.ui.workbench3;bundle-version="2.4.0";resolution:=optional
+ org.eclipse.fx.ui.workbench3;bundle-version="2.4.0"
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .,
  libs/bonecp-0.8.0.RELEASE.jar,
