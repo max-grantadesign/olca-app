@@ -24,6 +24,8 @@ project and other open source software.
       </programArgs>
       <vmArgs>-Xmx4G
 -Dosgi.framework.extensions=org.eclipse.fx.osgi
+-XX:MinHeapFreeRatio=10
+-XX:MaxHeapFreeRatio=40
       </vmArgs>
       <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts
       </vmArgsMac>
@@ -613,5 +615,12 @@ project and other open source software.
       <plugin id="org.eclipse.equinox.p2.reconciler.dropins" autoStart="true" startLevel="5" />
       <plugin id="org.eclipse.equinox.simpleconfigurator" autoStart="true" startLevel="1" />
    </configurations>
+
+   <preferencesInfo>
+      <targetfile overwrite="false"/>
+   </preferencesInfo>
+
+   <cssInfo>
+   </cssInfo>
 
 </product>
